@@ -15,51 +15,109 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```{r load-data}
-city <- read_csv(gzfile('city_day_agg_cleaned.csv.gz'))
-country <- read_csv(gzfile('country_day_agg_cleaned.csv.gz'))
+city <- read_csv(gzfile('data/city_day_agg_cleaned.csv.gz'))
+country <- read_csv(gzfile('data/country_day_agg_cleaned.csv.gz'))
+```
+```{r NO2}
+city_no2 <- city %>% 
+  filter(parameter == 'no2') %>%
+  mutate(year = ifelse(date > '2019-12-31', "2020", "before 2020")) %>% 
+  group_by(city_id, year) %>%
+  summarize(avg = mean(mean, na.rm = TRUE)) %>% 
+  group_by(year) %>% 
+  mutate(avg_by_year = median(avg))
+  
+freq_no2 <- table(city_no2$city_id)
+city_no2 <- city_no2[city_no2$city_id %in% names(freq_no2)[freq_no2 == 2], ]
+
+
+city_no2 %>%
+  ggplot(aes(x = avg, color = year, fill = year)) +
+  geom_density(color = 'black', alpha = 0.5, position = "identity")+
+  geom_vline(aes(xintercept = avg_by_year, color = year)) +
+  # scale_x_log10()+
+  labs(title = "City - NO2",
+       x = "NO2",
+       y = "Density")
+```
+
+
+```{r O3}
+city_o3 <- city %>% 
+  filter(parameter == 'o3') %>%
+  mutate(year = ifelse(date > '2019-12-31', "2020", "before 2020")) %>% 
+  group_by(city_id, year) %>%
+  summarize(avg = mean(mean, na.rm = TRUE)) %>% 
+  group_by(year) %>% 
+  mutate(avg_by_year = median(avg))
+  
+freq_o3 <- table(city_o3$city_id)
+city_o3 <- city_o3[city_o3$city_id %in% names(freq_o3)[freq_o3 == 2], ]
+
+
+city_o3 %>%
+  ggplot(aes(x = avg, color = year, fill = year)) +
+  geom_density(color = 'black', alpha = 0.5, position = "identity")+
+  geom_vline(aes(xintercept = avg_by_year, color = year)) +
+  # scale_x_log10()+
+  labs(title = "City - O3",
+       x = "O3",
+       y = "Density")
 ```
 
 
 ```{r PM25}
-# pm25_after2020 <- city %>% 
-#   filter(date > '2019-12-31') %>%
-#   filter(parameter == 'pm25') %>% 
-#   group_by(city_id) %>%
-#   mutate(avg = mean(mean, na.rm = TRUE)) %>% 
-#   mutate(year = (format(as.Date(date), "%Y"))) %>% 
-#   select(city_id, avg, year) %>% 
-#   unique()
-#   # summarize(avg = mean(mean, na.rm = TRUE)) %>% 
-# 
-# pm25_before2020 <- city %>% 
-#   filter(date < '2020-01-01') %>% 
-#   filter(parameter == 'pm25') %>% 
-#   group_by(city_id) %>%
-#   mutate(avg = mean(mean, na.rm = TRUE)) %>%
-#   select(countryCode, city_id, avg) %>%
-#   unique()
-
-# pm25 <- inner_join(pm25_after2020, pm25_before2020, by = "city_id")
-
-
-
 city_pm <- city %>% 
   filter(parameter == 'pm25') %>%
   mutate(year = ifelse(date > '2019-12-31', "2020", "before 2020")) %>% 
   group_by(city_id, year) %>%
-  summarize(avg = mean(mean, na.rm = TRUE))
+  summarize(avg = mean(mean, na.rm = TRUE)) %>% 
+  group_by(year) %>% 
+  mutate(avg_by_year = median(avg))
   
-freq <- table(city_pm$city_id)
-city_pm <- city_pm[city_pm$city_id %in% names(freq)[freq == 2], ]
-
+freq_pm <- table(city_pm$city_id)
+city_pm <- city_pm[city_pm$city_id %in% names(freq_pm)[freq_pm == 2], ]
+  
 
 city_pm %>%
   ggplot(aes(x = avg, color = year, fill = year)) +
   geom_density(color = 'black', alpha = 0.5, position = "identity")+
+  geom_vline(aes(xintercept = avg_by_year, color = year)) +
   # scale_x_log10()+
-  labs(title = "Inset - PM2.5",
+  labs(title = "City - PM2.5",
        x = "PM2.5",
        y = "Density")
+
+```
+
+```{r PM25 - country}
+# country_pm <- country %>% 
+#   filter(parameter == 'pm25') %>%
+#   mutate(year = ifelse(date > '2019-12-31', "2020", "before 2020")) %>% 
+#   group_by(countryCode, year) %>%
+#   summarize(avg = mean(mean, na.rm = TRUE))
+#   
+# freq_pm_country <- table(country_pm$countryCode)
+# country_pm <- country_pm[country_pm$countryCode %in% names(freq_pm_country)[freq_pm_country == 2], ]
+# 
+# avg_values_2020 <- subset(country_pm, year == '2020')$avg
+# avg_values_before_2020 <- subset(country_pm, year == 'before 2020')$avg
+# 
+# median(avg_values_2020)
+# median(avg_values_before_2020)
+# 
+# country_pm %>%
+#   ggplot(aes(x = avg, color = year, fill = year)) +
+#   geom_density(color = 'black', alpha = 0.5, position = "identity")+
+#   geom_vline(aes(xintercept = median(avg_values_2020), color = "cadetblue2")) +
+#   geom_vline(aes(xintercept = median(avg_values_before_2020), color = "coral1")) +
+#   # scale_x_log10()+
+#   labs(title = "Country - PM2.5",
+#        x = "PM2.5",
+#        y = "Density")
+```
+
+```{r}
 
 ```
 
