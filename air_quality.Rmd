@@ -50,17 +50,39 @@ city_no2 %>%
 
 ## MAP
 
-no2_map <- city %>%
+no2_map_2020 <- city %>%
   filter(parameter == 'no2') %>% 
-  filter((('2017-01-01' <= date) & (date <= '2017-05-31')) | (('2018-01-01' <= date) & (date <= '2018-05-31')) | (('2019-01-01' <= date) & (date <= '2019-05-31')) | (('2020-01-01' <= date) & (date <= '2020-05-31'))) %>% 
-  mutate(year = ifelse(date > '2019-12-31', "2020", "before 2020")) %>% 
-  group_by(city_id, year) %>%
-  summarize(avg = mean(mean, na.rm = TRUE))
+  filter((('2020-01-01' <= date) & (date <= '2020-05-31'))) %>% 
+  group_by(city_id) %>%
+  summarize(avg_2020 = mean(mean, na.rm = TRUE))
 
-freq_no2 <- table(no2_map$city_id)
-no2_map <- no2_map[no2_map$city_id %in% names(freq_no2)[freq_no2 == 2], ]
+no2_map_before_2020 <- city %>% 
+  filter(parameter == 'no2') %>%
+  filter((('2017-01-01' <= date) & (date <= '2017-05-31')) | (('2018-01-01' <= date) & (date <= '2018-05-31')) | (('2019-01-01' <= date) & (date <= '2019-05-31'))) %>% 
+  group_by(city_id) %>%
+  summarize(avg_before_2020 = mean(mean, na.rm = TRUE))
 
+no2_map <- inner_join(no2_map_2020, no2_map_before_2020, by = "city_id")
 no2_map <- left_join(no2_map, longlat, by = "city_id")
+no2_map <- no2_map %>% 
+  mutate(pcent = ((avg_before_2020 - avg_2020)/avg_before_2020)*100)
+
+world_map <- map_data("world")
+ggplot() +
+  geom_polygon(data = world_map,
+               aes(x = long, y = lat, group = group),
+               fill = "lightgray", color = "white") +
+  geom_point(data = no2_map, 
+             aes(x = Lon, y = Lat, color = pcent),
+             size = 0.1, alpha = 0.5) +
+  scale_color_gradient(low = "purple", high = "orange") +
+  labs(title = "Map - NO2",
+       x = "Longitude",
+       y = "Latitude")
+
+
+
+
 
 
 
@@ -89,6 +111,38 @@ city_o3 %>%
   labs(title = "City - O3",
        x = "O3",
        y = "Density")
+
+## MAP
+
+o3_map_2020 <- city %>%
+  filter(parameter == 'o3') %>% 
+  filter((('2020-01-01' <= date) & (date <= '2020-05-31'))) %>% 
+  group_by(city_id) %>%
+  summarize(avg_2020 = mean(mean, na.rm = TRUE))
+
+o3_map_before_2020 <- city %>% 
+  filter(parameter == 'o3') %>%
+  filter((('2017-01-01' <= date) & (date <= '2017-05-31')) | (('2018-01-01' <= date) & (date <= '2018-05-31')) | (('2019-01-01' <= date) & (date <= '2019-05-31'))) %>% 
+  group_by(city_id) %>%
+  summarize(avg_before_2020 = mean(mean, na.rm = TRUE))
+
+o3_map <- inner_join(o3_map_2020, o3_map_before_2020, by = "city_id")
+o3_map <- left_join(o3_map, longlat, by = "city_id")
+o3_map <- o3_map %>% 
+  mutate(pcent = ((avg_before_2020 - avg_2020)/avg_before_2020)*100)
+
+world_map <- map_data("world")
+ggplot() +
+  geom_polygon(data = world_map,
+               aes(x = long, y = lat, group = group),
+               fill = "lightgray", color = "white") +
+  geom_point(data = o3_map, 
+             aes(x = Lon, y = Lat, color = pcent),
+             size = 0.1, alpha = 0.5) +
+  scale_color_gradient(low = "purple", high = "orange") +
+  labs(title = "Map - O3",
+       x = "Longitude",
+       y = "Latitude")
 ```
 
 
@@ -113,6 +167,38 @@ city_pm %>%
   labs(title = "City - PM2.5",
        x = "PM2.5",
        y = "Density")
+
+## MAP
+
+pm_map_2020 <- city %>%
+  filter(parameter == 'pm25') %>% 
+  filter((('2020-01-01' <= date) & (date <= '2020-05-31'))) %>% 
+  group_by(city_id) %>%
+  summarize(avg_2020 = mean(mean, na.rm = TRUE))
+
+pm_map_before_2020 <- city %>% 
+  filter(parameter == 'pm25') %>%
+  filter((('2017-01-01' <= date) & (date <= '2017-05-31')) | (('2018-01-01' <= date) & (date <= '2018-05-31')) | (('2019-01-01' <= date) & (date <= '2019-05-31'))) %>% 
+  group_by(city_id) %>%
+  summarize(avg_before_2020 = mean(mean, na.rm = TRUE))
+
+pm_map <- inner_join(pm_map_2020, pm_map_before_2020, by = "city_id")
+pm_map <- left_join(pm_map, longlat, by = "city_id")
+pm_map <- pm_map %>% 
+  mutate(pcent = ((avg_before_2020 - avg_2020)/avg_before_2020)*100)
+
+world_map <- map_data("world")
+ggplot() +
+  geom_polygon(data = world_map,
+               aes(x = long, y = lat, group = group),
+               fill = "lightgray", color = "white") +
+  geom_point(data = pm_map, 
+             aes(x = Lon, y = Lat, color = pcent),
+             size = 0.1, alpha = 0.5) +
+  scale_color_gradient(low = "purple", high = "orange") +
+  labs(title = "Map - PM2.5",
+       x = "Longitude",
+       y = "Latitude")
 
 ```
 
