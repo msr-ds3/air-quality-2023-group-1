@@ -8,6 +8,7 @@ date: "2023-06-21"
 library(tidyverse)
 library(scales)
 library(modelr)
+library(lubridate)
 
 theme_set(theme_bw())
 knitr::opts_chunk$set(echo = TRUE)
@@ -17,7 +18,14 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r load-data}
 city <- read_csv(gzfile('data/city_day_agg_cleaned.csv.gz'))
 country <- read_csv(gzfile('data/country_day_agg_cleaned.csv.gz'))
+lockdown_USA <- read_csv('data/lockdown_dates.csv') %>% filter(countryCode == 'USA')
+lockdown_CHE <- read_csv('data/lockdown_dates.csv') %>% filter(countryCode == 'CHE')
+longlat <- read_csv('data/openaq_cities.csv')
+
 ```
+
+
+
 ```{r NO2}
 city_no2 <- city %>% 
   filter(parameter == 'no2') %>%
@@ -39,6 +47,24 @@ city_no2 %>%
   labs(title = "City - NO2",
        x = "NO2",
        y = "Density")
+
+## MAP
+
+no2_map <- city %>%
+  filter(parameter == 'no2') %>% 
+  filter((('2017-01-01' <= date) & (date <= '2017-05-31')) | (('2018-01-01' <= date) & (date <= '2018-05-31')) | (('2019-01-01' <= date) & (date <= '2019-05-31')) | (('2020-01-01' <= date) & (date <= '2020-05-31'))) %>% 
+  mutate(year = ifelse(date > '2019-12-31', "2020", "before 2020")) %>% 
+  group_by(city_id, year) %>%
+  summarize(avg = mean(mean, na.rm = TRUE))
+
+freq_no2 <- table(no2_map$city_id)
+no2_map <- no2_map[no2_map$city_id %in% names(freq_no2)[freq_no2 == 2], ]
+
+no2_map <- left_join(no2_map, longlat, by = "city_id")
+
+
+
+
 ```
 
 
