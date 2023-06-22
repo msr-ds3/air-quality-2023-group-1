@@ -1,0 +1,65 @@
+---
+title: "air quality"
+output: html_document
+date: "2023-06-21"
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(scales)
+library(modelr)
+
+theme_set(theme_bw())
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load-data}
+city <- read_csv(gzfile('city_day_agg_cleaned.csv.gz'))
+country <- read_csv(gzfile('country_day_agg_cleaned.csv.gz'))
+```
+
+
+```{r PM25}
+# pm25_after2020 <- city %>% 
+#   filter(date > '2019-12-31') %>%
+#   filter(parameter == 'pm25') %>% 
+#   group_by(city_id) %>%
+#   mutate(avg = mean(mean, na.rm = TRUE)) %>% 
+#   mutate(year = (format(as.Date(date), "%Y"))) %>% 
+#   select(city_id, avg, year) %>% 
+#   unique()
+#   # summarize(avg = mean(mean, na.rm = TRUE)) %>% 
+# 
+# pm25_before2020 <- city %>% 
+#   filter(date < '2020-01-01') %>% 
+#   filter(parameter == 'pm25') %>% 
+#   group_by(city_id) %>%
+#   mutate(avg = mean(mean, na.rm = TRUE)) %>%
+#   select(countryCode, city_id, avg) %>%
+#   unique()
+
+# pm25 <- inner_join(pm25_after2020, pm25_before2020, by = "city_id")
+
+
+
+city_pm <- city %>% 
+  filter(parameter == 'pm25') %>%
+  mutate(year = ifelse(date > '2019-12-31', "2020", "before 2020")) %>% 
+  group_by(city_id, year) %>%
+  summarize(avg = mean(mean, na.rm = TRUE))
+  
+freq <- table(city_pm$city_id)
+city_pm <- city_pm[city_pm$city_id %in% names(freq)[freq == 2], ]
+
+
+city_pm %>%
+  ggplot(aes(x = avg, color = year, fill = year)) +
+  geom_density(color = 'black', alpha = 0.5, position = "identity")+
+  # scale_x_log10()+
+  labs(title = "Inset - PM2.5",
+       x = "PM2.5",
+       y = "Density")
+
+```
+
