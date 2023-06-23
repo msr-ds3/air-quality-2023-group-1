@@ -1,5 +1,6 @@
 ---
-title: "air quality"
+title: "Global Air Pollution"
+author: "Hadassah Krigsman"
 output: html_document
 date: "2023-06-21"
 ---
@@ -14,22 +15,21 @@ theme_set(theme_bw())
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
 ```{r load-data}
-city <- read_csv(gzfile('data/city_day_agg_cleaned.csv.gz'))
-country <- read_csv(gzfile('data/country_day_agg_cleaned.csv.gz'))
-lockdown_USA <- read_csv('data/lockdown_dates.csv') %>% filter(countryCode == 'USA')
-lockdown_CHE <- read_csv('data/lockdown_dates.csv') %>% filter(countryCode == 'CHE')
-longlat <- read_csv('data/openaq_cities.csv')
+city <- read_csv(gzfile('data/city_day_agg_cleaned.csv.gz'), show_col_types = FALSE)
+country <- read_csv(gzfile('data/country_day_agg_cleaned.csv.gz'), show_col_types = FALSE)
+lockdown_USA_CHE <- read_csv('data/lockdown_dates.csv', show_col_types = FALSE) %>% filter(countryCode == 'USA' | countryCode == 'CHE')
+longlat <- read_csv('data/openaq_cities.csv', show_col_types = FALSE)
 
 ```
 
+Density distributions for the baseline (January-May, 2017-2019) and 2020 periods of NO2.
 
-
-```{r NO2}
+```{r Density Graph for NO2}
 city_no2 <- city %>% 
   filter(parameter == 'no2') %>%
-  mutate(year = ifelse(date > '2019-12-31', "2020", "before 2020")) %>% 
+  filter((('2017-01-01' <= date) & (date <= '2017-05-15')) | (('2018-01-01' <= date) & (date <= '2018-05-15')) | (('2019-01-01' <= date) & (date <= '2019-05-15')) | (('2020-01-01' <= date) & (date <= '2020-05-15'))) %>% 
+  mutate(year = ifelse((date > '2019-12-31'), "2020", "before 2020")) %>% 
   group_by(city_id, year) %>%
   summarize(avg = mean(mean, na.rm = TRUE)) %>% 
   group_by(year) %>% 
@@ -47,25 +47,28 @@ city_no2 %>%
   labs(title = "City - NO2",
        x = "NO2",
        y = "Density")
+```
 
-## MAP
+Global distribution of 2020 ground-level air pollution anomalies of NO2, with anomalies being defined as deviations in the 2020 January-May averages from the 3-year baseline of the same dates (2017-2019).
+
+```{r World Map for NO2}
 
 no2_map_2020 <- city %>%
   filter(parameter == 'no2') %>% 
-  filter((('2020-01-01' <= date) & (date <= '2020-05-31'))) %>% 
+  filter((('2020-01-01' <= date) & (date <= '2020-05-15'))) %>% 
   group_by(city_id) %>%
   summarize(avg_2020 = mean(mean, na.rm = TRUE))
 
 no2_map_before_2020 <- city %>% 
   filter(parameter == 'no2') %>%
-  filter((('2017-01-01' <= date) & (date <= '2017-05-31')) | (('2018-01-01' <= date) & (date <= '2018-05-31')) | (('2019-01-01' <= date) & (date <= '2019-05-31'))) %>% 
+  filter((('2017-01-01' <= date) & (date <= '2017-05-15')) | (('2018-01-01' <= date) & (date <= '2018-05-15')) | (('2019-01-01' <= date) & (date <= '2019-05-15'))) %>% 
   group_by(city_id) %>%
   summarize(avg_before_2020 = mean(mean, na.rm = TRUE))
 
 no2_map <- inner_join(no2_map_2020, no2_map_before_2020, by = "city_id")
 no2_map <- left_join(no2_map, longlat, by = "city_id")
 no2_map <- no2_map %>% 
-  mutate(pcent = ((avg_before_2020 - avg_2020)/avg_before_2020)*100)
+  mutate(pcent = ((avg_2020 - avg_before_2020)/avg_before_2020)*100)
 
 world_map <- map_data("world")
 ggplot() +
@@ -74,27 +77,21 @@ ggplot() +
                fill = "lightgray", color = "white") +
   geom_point(data = no2_map, 
              aes(x = Lon, y = Lat, color = pcent),
-             size = 0.1, alpha = 0.5) +
-  scale_color_gradient(low = "purple", high = "orange") +
+             size = 0.75, pch = 1) +
+  scale_color_gradientn(colors = c("purple", "white", "orange"), limits = c(-50, 50)) +
   labs(title = "Map - NO2",
        x = "Longitude",
        y = "Latitude")
 
-
-
-
-
-
-
-
 ```
 
+Density distributions for the baseline (January-May, 2017-2019) and 2020 periods of O3.
 
-```{r O3}
+```{r Density Graph for O3}
 city_o3 <- city %>% 
   filter(parameter == 'o3') %>%
-  mutate(year = ifelse(date > '2019-12-31', "2020", "before 2020")) %>% 
-  group_by(city_id, year) %>%
+  filter((('2017-01-01' <= date) & (date <= '2017-05-15')) | (('2018-01-01' <= date) & (date <= '2018-05-15')) | (('2019-01-01' <= date) & (date <= '2019-05-15')) | (('2020-01-01' <= date) & (date <= '2020-05-15'))) %>% 
+  mutate(year = ifelse((date > '2019-12-31'), "2020", "before 2020")) %>%  group_by(city_id, year) %>%
   summarize(avg = mean(mean, na.rm = TRUE)) %>% 
   group_by(year) %>% 
   mutate(avg_by_year = median(avg))
@@ -111,25 +108,27 @@ city_o3 %>%
   labs(title = "City - O3",
        x = "O3",
        y = "Density")
+```
 
-## MAP
+Global distribution of 2020 ground-level air pollution anomalies of O3, with anomalies being defined as deviations in the 2020 January-May averages from the 3-year baseline of the same dates (2017-2019).
 
+```{r World Map for O3}
 o3_map_2020 <- city %>%
   filter(parameter == 'o3') %>% 
-  filter((('2020-01-01' <= date) & (date <= '2020-05-31'))) %>% 
+  filter((('2020-01-01' <= date) & (date <= '2020-05-15'))) %>% 
   group_by(city_id) %>%
   summarize(avg_2020 = mean(mean, na.rm = TRUE))
 
 o3_map_before_2020 <- city %>% 
   filter(parameter == 'o3') %>%
-  filter((('2017-01-01' <= date) & (date <= '2017-05-31')) | (('2018-01-01' <= date) & (date <= '2018-05-31')) | (('2019-01-01' <= date) & (date <= '2019-05-31'))) %>% 
+  filter((('2017-01-01' <= date) & (date <= '2017-05-15')) | (('2018-01-01' <= date) & (date <= '2018-05-15')) | (('2019-01-01' <= date) & (date <= '2019-05-15'))) %>% 
   group_by(city_id) %>%
   summarize(avg_before_2020 = mean(mean, na.rm = TRUE))
 
 o3_map <- inner_join(o3_map_2020, o3_map_before_2020, by = "city_id")
 o3_map <- left_join(o3_map, longlat, by = "city_id")
 o3_map <- o3_map %>% 
-  mutate(pcent = ((avg_before_2020 - avg_2020)/avg_before_2020)*100)
+  mutate(pcent = ((avg_2020 - avg_before_2020)/avg_before_2020)*100)
 
 world_map <- map_data("world")
 ggplot() +
@@ -138,18 +137,20 @@ ggplot() +
                fill = "lightgray", color = "white") +
   geom_point(data = o3_map, 
              aes(x = Lon, y = Lat, color = pcent),
-             size = 0.1, alpha = 0.5) +
-  scale_color_gradient(low = "purple", high = "orange") +
+             size = 0.75, pch = 1) +
+  scale_color_gradientn(colors = c("purple", "white", "orange"), limits = c(-50, 50)) +
   labs(title = "Map - O3",
        x = "Longitude",
        y = "Latitude")
 ```
 
+Density distributions for the baseline (January-May, 2017-2019) and 2020 periods of PM2.5.
 
-```{r PM25}
+```{r Density Graph for PM2.5}
 city_pm <- city %>% 
   filter(parameter == 'pm25') %>%
-  mutate(year = ifelse(date > '2019-12-31', "2020", "before 2020")) %>% 
+  filter((('2017-01-01' <= date) & (date <= '2017-05-15')) | (('2018-01-01' <= date) & (date <= '2018-05-15')) | (('2019-01-01' <= date) & (date <= '2019-05-15')) | (('2020-01-01' <= date) & (date <= '2020-05-15'))) %>% 
+  mutate(year = ifelse((date > '2019-12-31'), "2020", "before 2020")) %>% 
   group_by(city_id, year) %>%
   summarize(avg = mean(mean, na.rm = TRUE)) %>% 
   group_by(year) %>% 
@@ -167,25 +168,27 @@ city_pm %>%
   labs(title = "City - PM2.5",
        x = "PM2.5",
        y = "Density")
+```
 
-## MAP
+Global distribution of 2020 ground-level air pollution anomalies of O3, with anomalies being defined as deviations in the 2020 January-May averages from the 3-year baseline of the same dates (2017-2019).
 
+```{r World Map for PM2.5}
 pm_map_2020 <- city %>%
   filter(parameter == 'pm25') %>% 
-  filter((('2020-01-01' <= date) & (date <= '2020-05-31'))) %>% 
+  filter((('2020-01-01' <= date) & (date <= '2020-05-15'))) %>% 
   group_by(city_id) %>%
   summarize(avg_2020 = mean(mean, na.rm = TRUE))
 
 pm_map_before_2020 <- city %>% 
   filter(parameter == 'pm25') %>%
-  filter((('2017-01-01' <= date) & (date <= '2017-05-31')) | (('2018-01-01' <= date) & (date <= '2018-05-31')) | (('2019-01-01' <= date) & (date <= '2019-05-31'))) %>% 
+  filter((('2017-01-01' <= date) & (date <= '2017-05-15')) | (('2018-01-01' <= date) & (date <= '2018-05-15')) | (('2019-01-01' <= date) & (date <= '2019-05-15'))) %>% 
   group_by(city_id) %>%
   summarize(avg_before_2020 = mean(mean, na.rm = TRUE))
 
 pm_map <- inner_join(pm_map_2020, pm_map_before_2020, by = "city_id")
 pm_map <- left_join(pm_map, longlat, by = "city_id")
 pm_map <- pm_map %>% 
-  mutate(pcent = ((avg_before_2020 - avg_2020)/avg_before_2020)*100)
+  mutate(pcent = ((avg_2020 - avg_before_2020)/avg_before_2020)*100)
 
 world_map <- map_data("world")
 ggplot() +
@@ -194,15 +197,17 @@ ggplot() +
                fill = "lightgray", color = "white") +
   geom_point(data = pm_map, 
              aes(x = Lon, y = Lat, color = pcent),
-             size = 0.1, alpha = 0.5) +
-  scale_color_gradient(low = "purple", high = "orange") +
+             size = 0.75, pch = 1) +
+  scale_color_gradientn(colors = c("purple", "white", "orange"), limits = c(-50,50)) +
   labs(title = "Map - PM2.5",
        x = "Longitude",
        y = "Latitude")
 
 ```
 
-```{r USA-model}
+Country-specific ground-level lockdown air pollution anomalies for PM2.5. The relative change [(observed - benchmark/observed)\*100] is plotted here for the US and Switzerland.
+
+```{r USA-CHE-model}
 
 model_baseline <- city %>% 
   filter(countryCode == 'USA' | countryCode == 'CHE', parameter == 'pm25') %>% 
@@ -213,22 +218,29 @@ model_baseline <- city %>%
 model <- lm(mean ~ month + is_weekday, model_baseline)
 
 model_2020 <- city %>% 
-  filter(countryCode == 'USA' | countryCode == 'CHE', parameter == 'pm25') %>% 
+  filter(countryCode == 'USA' | countryCode == 'CHE', parameter == 'pm25') %>%
   filter((('2020-03-15' <= date) & (date <= '2020-05-15'))) %>%
   mutate(month = month(date, label=T), weekday = as.factor(weekdays(date, abbreviate=T))) %>% 
-  mutate(is_weekday = !(weekday == 'Sun' | weekday == 'Sat')) %>% 
-  add_predictions(model)
+  mutate(is_weekday = !(weekday == 'Sun' | weekday == 'Sat'))
+
+preds <- predict(model, newdata = model_2020, se.fit = T)
+summary(model)
+model_2020$pred = preds$fit
+model_2020$se = preds$se.fit
+
 
 pred_model <- model_2020 %>% 
   mutate(rc = ((mean - pred)/mean)*100) %>% 
   group_by(countryCode) %>% 
-  summarize(relative_change = mean(rc))
+  summarize(relative_change = mean(rc), mean_se = mean(se)*1.96)
 
 
-
+pred_model %>% 
+  ggplot(aes(x = countryCode, y = relative_change, color = relative_change)) + 
+  geom_errorbar(aes(ymin = relative_change-mean_se, ymax = relative_change+mean_se), width = 0.075) +
+  geom_point() +
+  coord_flip() +
+  labs(title = "PM2.5",
+       x = "Relative Change",
+       y = "Country")
 ```
-
-```{r}
-
-```
-
