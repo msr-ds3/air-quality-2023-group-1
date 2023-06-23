@@ -202,31 +202,30 @@ ggplot() +
 
 ```
 
-```{r PM25 - country}
-# country_pm <- country %>% 
-#   filter(parameter == 'pm25') %>%
-#   mutate(year = ifelse(date > '2019-12-31', "2020", "before 2020")) %>% 
-#   group_by(countryCode, year) %>%
-#   summarize(avg = mean(mean, na.rm = TRUE))
-#   
-# freq_pm_country <- table(country_pm$countryCode)
-# country_pm <- country_pm[country_pm$countryCode %in% names(freq_pm_country)[freq_pm_country == 2], ]
-# 
-# avg_values_2020 <- subset(country_pm, year == '2020')$avg
-# avg_values_before_2020 <- subset(country_pm, year == 'before 2020')$avg
-# 
-# median(avg_values_2020)
-# median(avg_values_before_2020)
-# 
-# country_pm %>%
-#   ggplot(aes(x = avg, color = year, fill = year)) +
-#   geom_density(color = 'black', alpha = 0.5, position = "identity")+
-#   geom_vline(aes(xintercept = median(avg_values_2020), color = "cadetblue2")) +
-#   geom_vline(aes(xintercept = median(avg_values_before_2020), color = "coral1")) +
-#   # scale_x_log10()+
-#   labs(title = "Country - PM2.5",
-#        x = "PM2.5",
-#        y = "Density")
+```{r USA-model}
+
+model_baseline <- city %>% 
+  filter(countryCode == 'USA' | countryCode == 'CHE', parameter == 'pm25') %>% 
+  filter((('2017-03-15' <= date) & (date <= '2017-05-15')) | (('2018-03-15' <= date) & (date <= '2018-05-15')) | (('2019-03-15' <= date) & (date <= '2019-05-15'))) %>%
+  mutate(month = month(date, label=T), weekday = as.factor(weekdays(date, abbreviate=T))) %>% 
+  mutate(is_weekday = !(weekday == 'Sun' | weekday == 'Sat'))
+
+model <- lm(mean ~ month + is_weekday, model_baseline)
+
+model_2020 <- city %>% 
+  filter(countryCode == 'USA' | countryCode == 'CHE', parameter == 'pm25') %>% 
+  filter((('2020-03-15' <= date) & (date <= '2020-05-15'))) %>%
+  mutate(month = month(date, label=T), weekday = as.factor(weekdays(date, abbreviate=T))) %>% 
+  mutate(is_weekday = !(weekday == 'Sun' | weekday == 'Sat')) %>% 
+  add_predictions(model)
+
+pred_model <- model_2020 %>% 
+  mutate(rc = ((mean - pred)/mean)*100) %>% 
+  group_by(countryCode) %>% 
+  summarize(relative_change = mean(rc))
+
+
+
 ```
 
 ```{r}
